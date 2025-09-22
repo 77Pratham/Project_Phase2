@@ -236,7 +236,7 @@ def process_command(command: str):
             )
 
             sender_email = "pratham.r.108@gmail.com"
-            password = "lshp zhca cyzm yocd"
+            password = " "
             return email_manager.send_email(sender_email, password, recipient, subject or "Meeting", formatted_email)
              # fallback rules
 
