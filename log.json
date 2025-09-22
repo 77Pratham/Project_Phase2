@@ -1,0 +1,46 @@
+[
+    {
+        "command": "open notepad",
+        "status": "success"
+    },
+    {
+        "command": "trigger workflow: ping google.com",
+        "status": "failure"
+    },
+    {
+        "command": "trigger workflow: ping google.com",
+        "status": "failure"
+    },
+    {
+        "command": "trigger workflow: ping google.com",
+        "status": "failure"
+    },
+    {
+        "command": "schedule meeting tomorrow at 4PM",
+        "status": "success"
+    },
+    {
+        "command": " schedule a meeting tomorrow at five o'clock",
+        "status": "success"
+    },
+    {
+        "command": " schedule my game development project for tomorrow",
+        "status": "failure"
+    },
+    {
+        "command": " schedule my game development project tomorrow 5 o'clock 5 o'clock in class",
+        "status": "success"
+    },
+    {
+        "command": " schedule my game development project tomorrow at 5 p.m.",
+        "status": "success"
+    },
+    {
+        "command": " schedule meeting for me next wednesday at 6 o'clock",
+        "status": "success"
+    },
+    {
+        "command": " in a meeting for tomorrow at 6 p.m. it's from",
+        "status": "success"
+    }
+]

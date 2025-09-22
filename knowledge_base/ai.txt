@@ -1,0 +1,2 @@
+Artificial Intelligence is the simulation of human intelligence in machines that are programmed to think and learn.
+It includes areas like machine learning, natural language processing, and robotics.
