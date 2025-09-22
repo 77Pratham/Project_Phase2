@@ -1,0 +1,14 @@
+Subject: Staff Meeting - {subject}
+
+Dear Faculty,
+
+You are requested to attend the staff meeting scheduled as follows:
+
+Date: {date}  
+Time: {time}  
+Venue: {location}  
+
+Agenda: {extra}
+
+Best regards,  
+Department Office

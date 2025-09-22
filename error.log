@@ -1,0 +1,4 @@
+[ERROR] Command: send email to siddharth and shreya about syllabus review meeting
+Intent: calendar_event
+Error: name 'extract_subject_body' is not defined
+

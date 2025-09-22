@@ -1,0 +1,14 @@
+Subject: Class Meeting - {subject}
+
+Dear Students,
+
+This is to inform you that a class meeting will be held as per the details below:
+
+Date: {date}  
+Time: {time}  
+Venue: {location}  
+
+Agenda: {extra}
+
+Regards,  
+Your Professor

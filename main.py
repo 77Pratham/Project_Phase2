@@ -1,15 +1,21 @@
 # main.py
 import pyttsx3
 
+from slot_extractor import extract_datetime
 import speech_recognition as sr
 
 from agents import file_manager
 
 from agents import web_app_manager
 
-from agents import calendar_manager
+from agents import calendar_manager 
+
+from contacts_manager import ContactsManager
+contacts = ContactsManager("contacts.csv")
 
 import datetime
+
+import difflib
 
 import whisper
 import sounddevice as sd
@@ -91,169 +97,164 @@ def main():
         if result == "Goodbye! 👋":
             break
 
+from intent_classifier import predict_intent
+#from slot_extractor import extract_recipient, extract_subject_body, extract_datetime
+from datetime import datetime
+
+SESSION = {}  # keep context for multi-step tasks
+
+from template_manager import TemplateManager
+
+templates = TemplateManager("templates")
+
 def process_command(command: str):
-        intent = recognize_intent(command)
-        try:  
-            if intent == "file_manage":
-                if "list" in command:
-                    result = file_manager.list_files(".")
-                elif "create" in command and "folder" in command:
-                    result = file_manager.create_folder("test_folder")
-                elif "move" in command:
-                    result = file_manager.move_file("test.txt", "test_folder/test.txt")
-                else:
-                    result = "File management command not recognized."
-    
-                print("Assistant:", result)
-                speak(result)
-                feedback = input("Did this work correctly? (yes/no): ").strip().lower()
-                if feedback in ["yes", "y"]:
-                    log_feedback(command, "success")
-                else:
-                    log_feedback(command, "failure")
+    global SESSION
 
-                return
-            response = f"Recognized intent: {intent}"
-            print(f"Assistant: {response}")
-            speak(response)
-
-            if intent == "web_search" or intent == "launch_app":
-                if "search for" in command or "google" in command:
-                    query = command.replace("search for", "").replace("google", "").strip()
-                    feedback = f"Searching for {query}..."
-                    print(f"Assistant: {feedback}")
-                    speak(feedback)
-                    result = web_app_manager.search_google(query)
-                elif intent == "web_search":
-                    feedback = f"Searching for {command}..."
-                    print(f"Assistant: {feedback}")
-                    speak(feedback)
-                    result = web_app_manager.search_google(command)
-                elif "open" in command:
-                    if ".com" in command or ".org" in command or ".net" in command:
-                        site = command.replace("open", "").strip()
-                        feedback = f"Opening website {site}..."
-                        print(f"Assistant: {feedback}")
-                        speak(feedback)
-                        result = web_app_manager.open_website(site)
-                    else:
-                        app = command.replace("open", "").replace("run", "").strip()
-                        feedback = f"Opening application {app}..."
-                        print(f"Assistant: {feedback}")
-                        speak(feedback)
-                        result = web_app_manager.open_application(app)
-                else:
-                    result = "Web/App command not recognized."
-
-                print("Assistant:", result)
-                speak(result)
-                feedback = input("Did this work correctly? (yes/no): ").strip().lower()
-                if feedback in ["yes", "y"]:
-                    log_feedback(command, "success")
-                else:
-                    log_feedback(command, "failure")
-
-                return
-
-            if intent == "calendar_event":
-                summary, start_time, duration_hours = calendar_manager.parse_command(command)
-                if summary and start_time:
-                    result = calendar_manager.create_event(summary, start_time, duration_hours)
-                else:
-                    result = "Sorry, I couldn't understand the date/time."
-                
-                print("Assistant:", result)
-                speak(result)
-                feedback = input("Did this work correctly? (yes/no): ").strip().lower()
-                if feedback in ["yes", "y"]:
-                    log_feedback(command, "success")
-                else:
-                    log_feedback(command, "failure")
-
-                return
-            if intent == "calendar_list":
-                events = calendar_manager.list_upcoming_events()
-                result = "\n".join(events)
-                print("Assistant:\n", result)
-                speak("Here are your upcoming events.")
-                feedback = input("Did this work correctly? (yes/no): ").strip().lower()
-                if feedback in ["yes", "y"]:    
-                    log_feedback(command, "success")
-                else:
-                    log_feedback(command, "failure")
-                return
-
-            # In main.py
-            if intent == "rag_query":
-                result = rag.answer_query(command) # Revert back to this
-                print("Assistant:", result)
-                speak(result)
-                feedback = input("Did this work correctly? (yes/no): ").strip().lower()
-                if feedback in ["yes", "y"]:
-                    log_feedback(command, "success")
-                else:
-                    log_feedback(command, "failure")
-
-                return
-
-
-            if intent == "workflow_trigger":
-                speak("Triggering workflow.")
-                if ":" in command:
-                    actual_cmd = command.split(":", 1)[1].strip()
-                else:
-                    actual_cmd = "dir"  # default
-
-                result = trigger_n8n(actual_cmd)
-                print("Assistant:", result)
-                speak("Workflow executed")
-                return
-
-
-            if intent == "email_send":
-                try:
-                    sender_email = "pratham.r.108@gmail.com"
-                    password = "lshp zhca cyzm yocd"  # use Gmail App Password, not normal password
-
-                    # --- Extract recipient ---
-                    recipient_email = None
-                    for name in CONTACTS:
-                        if f"to {name}" in command.lower():
-                            recipient_email = CONTACTS[name]
-                            break
-                    if not recipient_email:
-                        return "I couldn't find the recipient in your contacts."
-
-                    # --- Extract subject ---
-                    subject = "General Email"
-                    if "about" in command:
-                        subject = command.split("about", 1)[1].split("saying")[0].strip().title()
-
-                    # --- Extract body ---
-                    body = "Hello!"
-                    if "saying" in command:
-                        body = command.split("saying", 1)[1].strip()
-                    else:
-                        body = command.replace("send email", "").strip()
-
-                    return email_manager.send_email(sender_email, password, recipient_email, subject, body)
-
-                except Exception as e:
-                    return f"Error handling email: {e}"
-
-            
-            elif intent == "exit":
-                return "Goodbye! 👋"
-
+    intent = recognize_intent(command)
+    print(f"[DEBUG] Recognized intent: {intent}")
+    try:
+                # --- Step 1: Handle active session ---
+        if "calendar" in SESSION:
+            session = SESSION["calendar"]
+            dt, duration = extract_datetime(command)
+            if dt:
+                subject = session.get("subject", "General Event")
+                result = calendar_manager.create_event(subject, dt, duration_hours=duration)
+                SESSION.pop("calendar", None)
+                return f"Event created: {subject} at {dt.strftime('%Y-%m-%d %H:%M')} for {duration}h"
             else:
-                return "Sorry, I don't understand that command."
+                return "Sorry, I still couldn't understand the date/time."
+
+        label, conf = predict_intent(command)
+        if conf > 0.75:
+            intent = label
+        else:
+            intent = recognize_intent(command) 
+
+        if intent == "file_manage":
+            if "list" in command:
+                result = file_manager.list_files(".")
+            elif "create" in command and "folder" in command:
+                result = file_manager.create_folder("test_folder")
+            elif "move" in command:
+                result = file_manager.move_file("test.txt", "test_folder/test.txt")
+            else:
+                result = "File management command not recognized."
+            return result
+
+        if intent == "web_search" or intent == "launch_app":
+            if "search for" in command or "google" in command:
+                query = command.replace("search for", "").replace("google", "").strip()
+                return web_app_manager.search_google(query)
+            elif "open" in command:
+                if ".com" in command or ".org" in command or ".net" in command:
+                    site = command.replace("open", "").strip()
+                    return web_app_manager.open_website(site)
+                else:
+                    app = command.replace("open", "").replace("run", "").strip()
+                    return web_app_manager.open_application(app)
+            else:
+                return "Web/App command not recognized."
+
+        if intent == "calendar_event":
+            session = SESSION.get("calendar", {})
+            dt = extract_datetime(command) or session.get("datetime")
+            subject, _ = extract_subject_body(command)
+            subject = subject or session.get("subject") or "General Event"
+
+            if not dt:
+                SESSION["calendar"] = {"subject": subject}
+                return "When should I schedule the event?"
             
+            # auto-fill with context from RAG
+            ctx = rag.get_context(subject)
+            attendees = []
+            if ctx and isinstance(ctx, str):
+                attendees = [email for email in extract_emails_from_text(ctx)]
             
-        except Exception as e:
-            # Log error details to file
-            with open("error.log", "a", encoding="utf-8") as f:
-                f.write(f"[ERROR] Command: {command}\nIntent: {intent}\nError: {str(e)}\n\n")
-            return "Something went wrong, please try again."
+            result = calendar_manager.create_event(subject, dt, duration_hours=1, attendees=attendees)
+            SESSION.pop("calendar", None)
+            return f"Event created: {result}"
+
+        if intent == "calendar_list":
+            events = calendar_manager.list_upcoming_events()
+            return "\n".join(events)
+
+        if intent == "rag_query":
+            return rag.answer_query(command)
+
+        if intent == "workflow_trigger":
+            if ":" in command:
+                actual_cmd = command.split(":", 1)[1].strip()
+            else:
+                actual_cmd = "dir"
+            return trigger_n8n(actual_cmd)
+
+        if intent == "workflow":
+            return trigger_n8n(command)
+
+        if intent == "email_send":
+# --- Extract recipients ---
+            recipient = []
+
+            # Match individual by name
+            for name in contacts.df['name']:
+                if name.lower() in command.lower():
+                    email = contacts.get_email(name)
+                    if email:
+                        recipient.append(email)
+
+            # Match groups by group_name (CSE_A, CSE_B, etc.)
+            for group in contacts.df['group_name'].dropna().unique():
+                if group.lower() in command.lower():
+                    recipient.extend(contacts.get_group_emails(group))
+
+            # Match all students
+            if "all students" in command.lower():
+                recipient.extend(contacts.get_all_students())
+
+            # Match all staff
+            if "all staff" in command.lower() or "faculty" in command.lower():
+                recipient.extend(contacts.get_all_staff())
+
+            # Remove duplicates
+            recipient = list(set(recipient))
+
+            if not recipient:
+                return "I couldn't find any recipients in contacts.csv."
+
+
+            # Fill placeholders (could use NLP or rules to parse date/time/context)
+            dt, duration = extract_datetime(command)
+            formatted_email = templates.fill_template(
+                template_name,
+                date=dt.strftime("%Y-%m-%d") if dt else "TBD",
+                time=dt.strftime("%I:%M %p") if dt else "TBD",
+                subject=subject or "Meeting",
+                location="Conference Room",
+                extra=body or "No extra agenda"
+            )
+
+            sender_email = "pratham.r.108@gmail.com"
+            password = "lshp zhca cyzm yocd"
+            return email_manager.send_email(sender_email, password, recipient, subject or "Meeting", formatted_email)
+             # fallback rules
+
+        if intent == "exit":
+            return "Goodbye! 👋"
+
+        return "Sorry, I don't understand that command."
+
+    except Exception as e:
+        with open("error.log", "a", encoding="utf-8") as f:
+            f.write(f"[ERROR] Command: {command}\nIntent: {intent}\nError: {str(e)}\n\n")
+        return "Something went wrong, please try again."
+
+
+def extract_emails_from_text(text):
+    import re
+    return re.findall(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", text)
+
 
 
 import re

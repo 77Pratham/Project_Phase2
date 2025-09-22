@@ -1,0 +1,36 @@
+text,intent
+"schedule meeting tomorrow at 4pm about project",schedule_event
+"schedule football practice next monday at 7 am",schedule_event
+"set a reminder for doctor's appointment at 5pm",schedule_event
+"remind me to call mom this evening",schedule_event
+"book meeting with shreya on friday 3pm",schedule_event
+"show my schedule",calendar_list
+"what's on my calendar tomorrow",calendar_list
+"list my upcoming events",calendar_list
+"send email to sid about football saying bring shoes",send_email
+"send email to shreya saying we have class at 9am",send_email
+"send email to pratham about project review",send_email
+"compose a mail to sid about the function",send_email
+"email shreya saying happy birthday",send_email
+"what is artificial intelligence",rag_query
+"tell me about project nova",rag_query
+"kb search quantum shield",rag_query
+"define machine learning",rag_query
+"search for latest football news",web_search
+"google weather in mangalore",web_search
+"find python tutorials",web_search
+"who is the prime minister of india",web_search
+"open notepad",launch_app
+"run calculator",launch_app
+"launch chrome",launch_app
+"start spotify",launch_app
+"open youtube.com",web_search
+"open github.com",web_search
+"workflow trigger: dir",workflow_trigger
+"trigger n8n workflow for report generation",workflow
+"automate sending invoice",workflow
+"workflow: backup files",workflow_trigger
+"exit",exit
+"quit",exit
+"goodbye",exit
+"close",exit
